@@ -1,0 +1,80 @@
+---
+title: "PredictionAssignmentWriteup"
+author: "Sophie"
+date: "8/9/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+1.Overview
+The main goal of the project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants and predict the manner in which they did the exercise. The machine learning algorithm is applied to build the best model and apply it to 20 different test cases.
+
+loading the packages
+
+```{r}
+library(caret)
+library(lattice)
+library(ggplot2)
+```
+
+
+2.Loading and observing the data.
+
+```{r}
+trainingdata <- read.csv("~/pml-training.csv")
+testingdata <- read.csv("~/pml-testing.csv")
+dim(trainingdata)
+dim(testingdata)
+```
+
+3.Cleaning up the data and remove the irrelevant variables and missing values.
+
+```{r}
+trainingdata <- trainingdata[,-(1:7)]
+NZV <- nearZeroVar(trainingdata)
+trainingdata <- trainingdata[,-NZV]
+PNA<- sapply(trainingdata,function(x)mean(is.na(x)))>0.95
+trainingdata <- trainingdata[,PNA==FALSE]
+```
+
+4.Creating training and testing set.
+
+```{r}
+set.seed(333)
+inTrain <- createDataPartition(trainingdata$classe,p=0.6,list=FALSE)
+training <- trainingdata[inTrain,]
+testing <- trainingdata[-inTrain,]
+dim(training)
+dim(testing)
+```
+
+5.Building 3 models
+
+```{r}
+modrpart <- train(classe~.,data=training,method="rpart")
+modRF <- train(classe~.,data=training,method="rf")
+modGBM <- train(classe~.,data=training,method="gbm",verbose = FALSE)
+```
+
+6.Assessing these models and find the most accurate model.
+
+```{r}
+testing$classe <- as.factor(testing$classe)
+predrpart <- predict(modrpart,newdata=testing)
+cmrpart <- confusionMatrix(predrpart,testing$classe)
+predRF <- predict(modRF,newdata=testing)
+cmRF <- confusionMatrix(predRF,testing$classe)
+predGBM <- predict(modGBM,newdata=testing)
+cmGBM <- confusionMatrix(predGBM,testing$classe)
+cmrpart$overall[1]
+cmRF$overall[1]
+cmGBM$overall[1]
+```
+
+7.Predicting the test data with the best model RF.
+
+```{r}
+pred <- predict(modRF,testingdata)
+print(pred)
+```
+
